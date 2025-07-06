@@ -8,6 +8,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use log::warn;
+
 use bevy::{
     asset::load_internal_binary_asset,
     image::{ImageAddressMode, ImageFilterMode, ImageSampler, ImageSamplerDescriptor},
@@ -769,7 +771,7 @@ fn spine_spawn(
 fn spawn_bones(
     spine_entity: Entity,
     bone_parent: Option<SpineBoneParent>,
-    parent: &mut ChildBuilder,
+    parent: &mut ChildSpawnerCommands,
     skeleton: &Skeleton,
     bone: BoneHandle,
     bones: &mut HashMap<String, Entity>,
@@ -802,7 +804,7 @@ fn spawn_bones(
                     spawn_bones(
                         spine_entity,
                         Some(SpineBoneParent {
-                            entity: parent.parent_entity(),
+                            entity: parent.target_entity(),
                             handle: bone.handle(),
                         }),
                         parent,
@@ -822,7 +824,7 @@ fn spine_ready(
     mut ready_writer: EventWriter<SpineReadyEvent>,
 ) {
     for event in take(&mut ready_events.0).into_iter() {
-        ready_writer.send(event);
+        ready_writer.write(event);
     }
 }
 
@@ -838,7 +840,7 @@ fn spine_update_animation(
     {
         let mut events = spine_event_queue.0.lock().unwrap();
         while let Some(event) = events.pop_front() {
-            spine_events.send(event);
+            spine_events.write(event);
         }
     }
 }

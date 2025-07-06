@@ -1,5 +1,9 @@
 # bevy_spine
 
+Note: as of July 6, 2025, I had to compile using the cargo "beta". Otherwise, I got an "edition2024" error.
+
+cargo +beta build
+
 A Bevy Plugin for [Spine](http://esotericsoftware.com/), utilizing [rusty_spine](https://github.com/jabuwu/rusty_spine). WASM compatible!
 
 ```
