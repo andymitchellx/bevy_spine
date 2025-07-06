@@ -110,9 +110,9 @@ fn update_materials<T: SpineMaterial>(
                     entity_commands.remove::<T::MeshMaterial>();
                 }
             }
-        } else if let Ok(material) = T::update(None, spine_mesh.spine_entity, data, &params) {
+        } else if let Some(material) = T::update(None, spine_mesh.spine_entity, data, &params) {
             let handle = materials.add(material);
-            if let Some(mut entity_commands) = commands.get_entity(mesh_entity) {
+            if let Ok(mut entity_commands) = commands.get_entity(mesh_entity) {
                 entity_commands
                     .insert(<T::MeshMaterial as From<Handle<T::Material>>>::from(handle));
             }

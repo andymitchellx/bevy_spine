@@ -159,7 +159,7 @@ impl Plugin for SpinePlugin {
                     .in_set(SpineSet::OnUpdateMesh)
                     .after(SpineSystem::UpdateAnimation)
                     .after(SpineSet::OnEvent),
-                apply_deferred
+                ApplyDeferred
                     .in_set(SpineSystem::SpawnFlush)
                     .after(SpineSystem::Spawn)
                     .before(SpineSystem::Ready),
@@ -725,7 +725,7 @@ fn spine_spawn(
                                             empty_mesh(&mut mesh);
                                             let mesh_handle = meshes.add(mesh);
                                             parent.spawn((
-                                                Name::new(format!("spine_mesh {}", index)),
+                                                Name::new(format!("spine_mesh {index}")),
                                                 SpineMesh {
                                                     spine_entity,
                                                     handle: mesh_handle.clone(),
@@ -862,11 +862,11 @@ fn spine_update_meshes(
         Option<&Mesh3d>,
     )>,
     mut commands: Commands,
-    meshes_query: Query<(&Parent, &Children), With<SpineMeshes>>,
+    meshes_query: Query<(&ChildOf, &Children), With<SpineMeshes>>,
     asset_server: Res<AssetServer>,
 ) {
     for (meshes_parent, meshes_children) in meshes_query.iter() {
-        let Ok((mut spine, spine_mesh_type)) = spine_query.get_mut(meshes_parent.get()) else {
+        let Ok((mut spine, spine_mesh_type)) = spine_query.get_mut(meshes_parent.parent()) else {
             continue;
         };
         let SpineSettings {
@@ -888,7 +888,7 @@ fn spine_update_meshes(
                 mut spine_mesh_transform,
                 spine_2d_mesh,
                 spine_3d_mesh,
-            )) = mesh_query.get_mut(*child)
+            )) = mesh_query.get_mut(child)
             {
                 macro_rules! apply_mesh {
                     ($mesh:ident, $condition:expr, $attach:expr, $deattach:ty) => {
@@ -1075,7 +1075,7 @@ fn adjust_spine_textures(
                     AtlasFilter::Nearest => ImageFilterMode::Nearest,
                     AtlasFilter::Linear => ImageFilterMode::Linear,
                     _ => {
-                        warn!("Unsupported Spine filter: {:?}", filter);
+                        warn!("Unsupported Spine filter: {filter:?}");
                         ImageFilterMode::Nearest
                     }
                 }
@@ -1086,7 +1086,7 @@ fn adjust_spine_textures(
                     AtlasWrap::MirroredRepeat => ImageAddressMode::MirrorRepeat,
                     AtlasWrap::Repeat => ImageAddressMode::Repeat,
                     _ => {
-                        warn!("Unsupported Spine wrap mode: {:?}", wrap);
+                        warn!("Unsupported Spine wrap mode: {wrap:?}");
                         ImageAddressMode::ClampToEdge
                     }
                 }
