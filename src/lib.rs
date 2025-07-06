@@ -698,7 +698,7 @@ fn spine_spawn(
                         });
                     controller.skeleton.set_to_setup_pose();
                     let mut bones = HashMap::new();
-                    if let Some(mut entity_commands) = commands.get_entity(spine_entity) {
+                    if let Ok(mut entity_commands) = commands.get_entity(spine_entity) {
                         entity_commands
                             .with_children(|parent| {
                                 // TODO: currently, a mesh is created for each slot, however when we use the
@@ -894,13 +894,13 @@ fn spine_update_meshes(
                     ($mesh:ident, $condition:expr, $attach:expr, $deattach:ty) => {
                         if $condition {
                             if !$mesh.is_some() {
-                                if let Some(mut entity) = commands.get_entity(spine_mesh_entity) {
+                                if let Ok(mut entity) = commands.get_entity(spine_mesh_entity) {
                                     entity.insert($attach);
                                 }
                             }
                         } else {
                             if $mesh.is_some() {
-                                if let Some(mut entity) = commands.get_entity(spine_mesh_entity) {
+                                if let Ok(mut entity) = commands.get_entity(spine_mesh_entity) {
                                     entity.remove::<$deattach>();
                                 }
                             }
@@ -1101,32 +1101,34 @@ fn adjust_spine_textures(
             // The RGB components exported from Spine were premultiplied in nonlinear space, but need to be
             // multiplied in linear space to render properly in Bevy.
             if handle_config.premultiplied_alpha {
-                for i in 0..(image.data.len() / 4) {
-                    let mut rgba = Srgba::rgba_u8(
-                        image.data[i * 4],
-                        image.data[i * 4 + 1],
-                        image.data[i * 4 + 2],
-                        image.data[i * 4 + 3],
-                    );
-                    if rgba.alpha != 0. {
-                        rgba = Srgba::new(
-                            rgba.red / rgba.alpha,
-                            rgba.green / rgba.alpha,
-                            rgba.blue / rgba.alpha,
-                            rgba.alpha,
+                if let Some(data) = &mut image.data {
+                    for i in 0..(data.len() / 4) {
+                        let mut rgba = Srgba::rgba_u8(
+                            data[i * 4],
+                            data[i * 4 + 1],
+                            data[i * 4 + 2],
+                            data[i * 4 + 3],
                         );
-                    } else {
-                        rgba = Srgba::new(0., 0., 0., 0.);
+                        if rgba.alpha != 0. {
+                            rgba = Srgba::new(
+                                rgba.red / rgba.alpha,
+                                rgba.green / rgba.alpha,
+                                rgba.blue / rgba.alpha,
+                                rgba.alpha,
+                            );
+                        } else {
+                            rgba = Srgba::new(0., 0., 0., 0.);
+                        }
+                        let mut linear_rgba = LinearRgba::from(rgba);
+                        linear_rgba.red *= linear_rgba.alpha;
+                        linear_rgba.green *= linear_rgba.alpha;
+                        linear_rgba.blue *= linear_rgba.alpha;
+                        rgba = Srgba::from(linear_rgba);
+                        data[i * 4] = (rgba.red * 255.) as u8;
+                        data[i * 4 + 1] = (rgba.green * 255.) as u8;
+                        data[i * 4 + 2] = (rgba.blue * 255.) as u8;
+                        data[i * 4 + 3] = (rgba.alpha * 255.) as u8;
                     }
-                    let mut linear_rgba = LinearRgba::from(rgba);
-                    linear_rgba.red *= linear_rgba.alpha;
-                    linear_rgba.green *= linear_rgba.alpha;
-                    linear_rgba.blue *= linear_rgba.alpha;
-                    rgba = Srgba::from(linear_rgba);
-                    image.data[i * 4] = (rgba.red * 255.) as u8;
-                    image.data[i * 4 + 1] = (rgba.green * 255.) as u8;
-                    image.data[i * 4 + 2] = (rgba.blue * 255.) as u8;
-                    image.data[i * 4 + 3] = (rgba.alpha * 255.) as u8;
                 }
             }
             removed_handles.push(handle_index);
